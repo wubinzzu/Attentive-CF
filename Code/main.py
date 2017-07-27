@@ -50,7 +50,7 @@ else:
 if os.path.isfile(os.getcwd()+"/Checkpoints/user_vts"):
 	user_vts = torch.load(os.getcwd()+"/Checkpoints/user_vts")
 else:
-	user_vts = nn.Embedding(len(users_to_ix),EMBEDDING_DIM)
+	user_vts = nn.Embedding(len(users_to_ix),EMBEDDING_DIM,max_norm = 1.0)
 
 while 1:
 	# Selecting a data bucket

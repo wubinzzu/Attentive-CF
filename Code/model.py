@@ -34,6 +34,8 @@ class ExtractImageVectors(nn.Module):
 		:: input_img :: a Float Tensor that represents the image
 		Output:
 		:: out :: a Float Tensor that compresses this image into a vector form
+		Model:
+		:: Conv layer -> Avg Pool layer -> Conv Layer -> Avg Pool Layer -> dense affine layer
 		"""
 		out = self.ll1(self.ap(self.c2(self.ap(self.c1(input_img)))).view(1,-1))
 		return out
@@ -42,6 +44,7 @@ class ScoreModel(nn.Module):
 	"""docstring for ScoreModel"""
 	def __init__(self):
 		super(ScoreModel, self).__init__()
+		# self.mml = torch.mm()
 		# self.use_cuda = False
 
 	def forward(self,uv,iv):
@@ -57,7 +60,12 @@ class CompareModel(nn.Module):
 		self.SM = ScoreModel()
 
 	def forward(self,usr_vt,pitem,nitem):
-		out = self.lsig(self.SM(usr_vt,pitem)-self.SM(usr_vt,nitem))
+		R1 = self.SM(usr_vt,pitem)
+		R2 = self.SM(usr_vt,nitem)
+		print "========"
+		print R1,R2
+		print "========"
+		out = self.lsig(R1-R2)
 		return out
 		
 
@@ -104,13 +112,14 @@ def train(data, items, usr_vts, users_to_ix, model, optimizer, verbose=True):
 
 			# Getting the prediction
 			pred_out = CM(uvt,pitem,nitem)
-			print pred_out
+			# print pred_out
 
 			# Calculating loss
 			loss = 0
 			loss += criterion(pred_out, ag.Variable(torch.FloatTensor([0])))
 			tot_loss += loss.data[0]
 			loss.backward(retain_variables=True)
+			# print pitem.grad
 			
 			# print itm in data[usr]
 			# print unob_itm in data[usr]
