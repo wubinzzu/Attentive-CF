@@ -14,7 +14,10 @@ if HAVE_CUDA:
 	import torch.cuda as cuda
 
 class ExtractImageVectors(nn.Module):
- 	"""docstring for ExtractImageVectors"""
+ 	"""
+	This Class will be used to extract image vectors out of the images
+	which can then be used with user vectors
+ 	"""
  	def __init__(self,embedding_dim):
  		super(ExtractImageVectors, self).__init__()
  		self.c1 = nn.Conv2d(3, 12, 25, stride=1)
@@ -26,6 +29,12 @@ class ExtractImageVectors(nn.Module):
 		# self.use_cuda = False
 
 	def forward(self, input_img):
+		"""
+		Input:
+		:: input_img :: a Float Tensor that represents the image
+		Output:
+		:: out :: a Float Tensor that compresses this image into a vector form
+		"""
 		out = self.ll1(self.ap(self.c2(self.ap(self.c1(input_img)))).view(1,-1))
 		return out
 
@@ -44,11 +53,11 @@ class CompareModel(nn.Module):
 	def __init__(self):
 		super(CompareModel, self).__init__()
 		# self.use_cuda = False
-		self.sig = nn.Sigmoid()
+		self.lsig = nn.LogSigmoid()
 		self.SM = ScoreModel()
 
 	def forward(self,usr_vt,pitem,nitem):
-		out = self.sig(self.SM(usr_vt,pitem)-self.SM(usr_vt,nitem))
+		out = self.lsig(self.SM(usr_vt,pitem)-self.SM(usr_vt,nitem))
 		return out
 		
 
@@ -99,7 +108,7 @@ def train(data, items, usr_vts, users_to_ix, model, optimizer, verbose=True):
 
 			# Calculating loss
 			loss = 0
-			loss += criterion(pred_out, ag.Variable(torch.FloatTensor([1])))
+			loss += criterion(pred_out, ag.Variable(torch.FloatTensor([0])))
 			tot_loss += loss.data[0]
 			loss.backward(retain_variables=True)
 			

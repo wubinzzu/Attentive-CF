@@ -57,7 +57,7 @@ while 1:
 	b_no = random.randint(0, len(data)-1)
 	b_no = 1
 	# Optimizer
-	optimizer = optim.SGD(img_model.parameters(), lr=0.01)
+	optimizer = optim.SGD(img_model.parameters(), lr=0.001)
 	# Train the current batch
 	md.train(data[b_no],items,user_vts,users_to_ix ,img_model,optimizer)
 	md.train(data[b_no],items,user_vts,users_to_ix ,img_model,optimizer)
