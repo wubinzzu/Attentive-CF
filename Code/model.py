@@ -73,23 +73,28 @@ class AutoEncoder(nn.Module):
 	"""docstring for AutoEncoder"""
 	def __init__(self):
 		super(AutoEncoder, self).__init__()
-		self.c1 = nn.Conv2d(3, 16, (4,4), stride=1)
+		self.c1 = nn.Conv2d(3, 20, (3,3), stride=2)
 		self.mp = nn.MaxPool2d(2, stride=2)
-		self.c2 = nn.Conv2d(16, 64, (4,4), stride=1)
-		self.c3 = nn.Conv2d(64, 1, (1,1), stride=1)
+		self.c2 = nn.Conv2d(20, 100, (5,5), stride=2)
+		self.c3 = nn.Conv2d(100, 1, (1,1), stride=1,bias = False)
 		self.ump = nn.MaxUnpool2d(2, stride=2)
-		self.uc3 = nn.ConvTranspose2d(1, 64, (1,1), stride=1)
-		self.uc2 = nn.ConvTranspose2d(64, 16, (4,4), stride=1)
-		self.uc1 = nn.ConvTranspose2d(16, 3, (4,4), stride=1)
+		self.uc3 = nn.ConvTranspose2d(1, 100, (1,1), stride=1,bias = False)
+		self.uc2 = nn.ConvTranspose2d(100, 20, (6,6), stride=2)
+		self.uc1 = nn.ConvTranspose2d(20, 3, (4,4), stride=2)
 		self.out = None
 		# self.ll1 = nn.Linear(1944, 100)
 
 	def forward(self,input_img):
-		self.out = self.c3(self.mp((self.c2(self.mp(self.c1(input_img))))))#.view(1,1,1,-1)
-		out1 = self.uc1(self.ump(self.uc2(self.ump(self.uc3(self.out)))))
+		out = self.c3((self.c2(self.c1(input_img))))#.view(1,1,1,-1)
+		out1 = self.uc1(self.uc2(self.uc3(out)))
 		# print out
 		return out1
 		# pass
+		
+	def getImageVector():
+		out = self.c3((self.c2(self.c1(input_img)))).view(1,1,1,-1)
+		return out
+		pass
 		
 def trainAE(data,model,optimizer,verbose=True,batch_size = 32):
 	tot_loss = 0.0
@@ -102,9 +107,10 @@ def trainAE(data,model,optimizer,verbose=True,batch_size = 32):
 	# model2 = ExtractImageVectors(EMBEDDING_DIM)
 	# Pairwise Learning
 	optimizer.zero_grad()
+	# print data
 	for itm in data:
 		it+=1
-		print it
+		# print it
 		
 		itm_img = Image.open(os.getcwd()+"/../Resize_images_50/"+itm+".jpg")			
 		itm_img = ag.Variable(tt(itm_img)).view(1,-1,SIDELENGTH,SIDELENGTH)
@@ -114,7 +120,7 @@ def trainAE(data,model,optimizer,verbose=True,batch_size = 32):
 		# Calculating loss
 		loss = 0
 		loss += criterion(pred_out, itm_img)
-		print "Curr_Loss ============================================================================================ ", loss.data[0]
+		# print "Curr_Loss ============================================================================================ ", loss.data[0]
 		tot_loss += loss.data[0]		
 		loss.backward(retain_variables=True)
 		if it%batch_size == 0:
@@ -122,7 +128,8 @@ def trainAE(data,model,optimizer,verbose=True,batch_size = 32):
 			optimizer.zero_grad()
 
 	optimizer.step()	
-	print "Loss ============================================================================================ ", tot_loss
+	print "Loss : ", tot_loss/len(data)
+	return tot_loss/len(data)
 	pass
 
 def trainModel1(data, items, usr_vts, users_to_ix, model, optimizer, verbose=True):

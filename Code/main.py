@@ -11,6 +11,7 @@ import random
 from collections import defaultdict
 from torchvision import transforms
 from constants import HAVE_CUDA, BUCKET_SIZE, EMBEDDING_DIM, SIDELENGTH
+import time
 
 if HAVE_CUDA:
 	import torch.cuda as cuda
@@ -18,8 +19,20 @@ if HAVE_CUDA:
 
 itemsfile = open("item_ids.txt","r")
 items = []
+nitems = []
+itemsbin = []
+i=0
 for l in itemsfile:
-	items.append(l.split("\n")[0])
+	i+=1
+	itm = l.split("\n")[0]
+	items.append(itm)
+	nitems.append(itm)
+	if i%BUCKET_SIZE == 0:
+		itemsbin.append(nitems)
+		nitems = []
+if len(nitems)>0:
+	itemsbin.append(nitems)
+
 datafile = open("pairs.txt","r")	#Change this to train/test as the data is divided
 data = []
 i=0
@@ -58,15 +71,37 @@ if os.path.isfile(os.getcwd()+"/Checkpoints/auto_encoder"):
 else:
 	AE = md.AutoEncoder()
 
+if os.path.isfile(os.getcwd()+"/Checkpoints/optm"):
+	optimizer = torch.load(os.getcwd()+"/Checkpoints/optm")
+else:
+	optimizer = optim.Adam(AE.parameters(), lr=0.001)
+
+start_time = time.time()
+iterind = 0
+t_loss = 0
 while 1:
+	iterind+=1
+	# print len(data)
+	# print len(itemsbin)
 	# Selecting a data bucket
-	b_no = random.randint(0, len(data)-1)
-	b_no = 1
+	i_b_no = random.randint(0, len(itemsbin)-1)
+	print iterind,i_b_no
+	# b_no = 1
 	# Optimizer
-	optimizer = optim.SGD(AE.parameters(), lr=0.001)
+	
 	# Train autoencoder
 	
-	md.trainAE(items[0:100],AE,optimizer)
+	t_loss += md.trainAE(itemsbin[i_b_no],AE,optimizer)
+	# md.trainAE(itemsbin[b_no],AE,optimizer)
+
+	torch.save(AE,os.getcwd()+"/Checkpoints/auto_encoder")
+	# torch.save(optimizer,os.getcwd()+"/Checkpoints/optm")
+
 	# Train the current batch
 	# md.trainmodel1(data[b_no],items,user_vts,users_to_ix ,img_model,optimizer)
-	break
+	if iterind%100 == 0:
+		print "Time elapsed ======================== ",(time.time()-start_time)/60
+		print "Total loss ========================== ",t_loss/100
+		t_loss = 0
+	# break
+print (time.time()-start_time)/60
