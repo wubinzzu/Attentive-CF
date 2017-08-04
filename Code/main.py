@@ -50,17 +50,23 @@ else:
 if os.path.isfile(os.getcwd()+"/Checkpoints/user_vts"):
 	user_vts = torch.load(os.getcwd()+"/Checkpoints/user_vts")
 else:
-	user_vts = nn.Embedding(len(users_to_ix),EMBEDDING_DIM,max_norm = 1.0)
+	user_vts = nn.Embedding(len(users_to_ix),EMBEDDING_DIM)#,max_norm = 1.0)
+
+# Load AutoEncoder
+if os.path.isfile(os.getcwd()+"/Checkpoints/auto_encoder"):
+	AE = torch.load(os.getcwd()+"/Checkpoints/auto_encoder")
+else:
+	AE = md.AutoEncoder()
 
 while 1:
 	# Selecting a data bucket
 	b_no = random.randint(0, len(data)-1)
 	b_no = 1
 	# Optimizer
-	optimizer = optim.SGD(img_model.parameters(), lr=0.001)
+	optimizer = optim.SGD(AE.parameters(), lr=0.001)
+	# Train autoencoder
+	
+	md.trainAE(items[0:100],AE,optimizer)
 	# Train the current batch
-	md.train(data[b_no],items,user_vts,users_to_ix ,img_model,optimizer)
-	md.train(data[b_no],items,user_vts,users_to_ix ,img_model,optimizer)
-	md.train(data[b_no],items,user_vts,users_to_ix ,img_model,optimizer)	
-	md.train(data[b_no],items,user_vts,users_to_ix ,img_model,optimizer)	
+	# md.trainmodel1(data[b_no],items,user_vts,users_to_ix ,img_model,optimizer)
 	break

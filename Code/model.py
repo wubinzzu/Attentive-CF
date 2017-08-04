@@ -48,6 +48,7 @@ class ScoreModel(nn.Module):
 		# self.use_cuda = False
 
 	def forward(self,uv,iv):
+		print uv,iv
 		out = torch.mm(uv.view(1,-1),iv.view(-1,1))
 		return out
 
@@ -67,9 +68,64 @@ class CompareModel(nn.Module):
 		print "========"
 		out = self.lsig(R1-R2)
 		return out
-		
 
-def train(data, items, usr_vts, users_to_ix, model, optimizer, verbose=True):
+class AutoEncoder(nn.Module):
+	"""docstring for AutoEncoder"""
+	def __init__(self):
+		super(AutoEncoder, self).__init__()
+		self.c1 = nn.Conv2d(3, 16, (4,4), stride=1)
+		self.mp = nn.MaxPool2d(2, stride=2)
+		self.c2 = nn.Conv2d(16, 64, (4,4), stride=1)
+		self.c3 = nn.Conv2d(64, 1, (1,1), stride=1)
+		self.ump = nn.MaxUnpool2d(2, stride=2)
+		self.uc3 = nn.ConvTranspose2d(1, 64, (1,1), stride=1)
+		self.uc2 = nn.ConvTranspose2d(64, 16, (4,4), stride=1)
+		self.uc1 = nn.ConvTranspose2d(16, 3, (4,4), stride=1)
+		self.out = None
+		# self.ll1 = nn.Linear(1944, 100)
+
+	def forward(self,input_img):
+		self.out = self.c3(self.mp((self.c2(self.mp(self.c1(input_img))))))#.view(1,1,1,-1)
+		out1 = self.uc1(self.ump(self.uc2(self.ump(self.uc3(self.out)))))
+		# print out
+		return out1
+		# pass
+		
+def trainAE(data,model,optimizer,verbose=True,batch_size = 32):
+	tot_loss = 0.0
+	tt = transforms.ToTensor()	#Helper class to convert Jpgs to tensors
+	criterion = nn.MSELoss()
+	if HAVE_CUDA:
+		criterion.cuda()
+
+	it = 0
+	# model2 = ExtractImageVectors(EMBEDDING_DIM)
+	# Pairwise Learning
+	optimizer.zero_grad()
+	for itm in data:
+		it+=1
+		print it
+		
+		itm_img = Image.open(os.getcwd()+"/../Resize_images_50/"+itm+".jpg")			
+		itm_img = ag.Variable(tt(itm_img)).view(1,-1,SIDELENGTH,SIDELENGTH)
+
+		pred_out = model(itm_img)
+
+		# Calculating loss
+		loss = 0
+		loss += criterion(pred_out, itm_img)
+		print "Curr_Loss ============================================================================================ ", loss.data[0]
+		tot_loss += loss.data[0]		
+		loss.backward(retain_variables=True)
+		if it%batch_size == 0:
+			optimizer.step()
+			optimizer.zero_grad()
+
+	optimizer.step()	
+	print "Loss ============================================================================================ ", tot_loss
+	pass
+
+def trainModel1(data, items, usr_vts, users_to_ix, model, optimizer, verbose=True):
 	
 	tot_loss = 0.0
 	CM = CompareModel()
@@ -117,7 +173,9 @@ def train(data, items, usr_vts, users_to_ix, model, optimizer, verbose=True):
 			# Calculating loss
 			loss = 0
 			loss += criterion(pred_out, ag.Variable(torch.FloatTensor([0])))
+			print "Curr_Loss ============================================================================================ ", loss.data[0]
 			tot_loss += loss.data[0]
+			
 			loss.backward(retain_variables=True)
 			# print pitem.grad
 			
@@ -126,4 +184,4 @@ def train(data, items, usr_vts, users_to_ix, model, optimizer, verbose=True):
 
 		# Back prop
 		optimizer.step()
-	print tot_loss
+	print "Loss ============================================================================================ ", tot_loss

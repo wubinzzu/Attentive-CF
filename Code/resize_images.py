@@ -2,8 +2,8 @@ import PIL
 from PIL import Image
 import os
 
-dir_to_save = "Resize_images/"
-for root, dirs, files in os.walk("images/", topdown=True):
+dir_to_save = "../Resize_images_50/"
+for root, dirs, files in os.walk("../images/", topdown=True):
 	i=0
 	for name in files:
 		i+=1
@@ -26,6 +26,8 @@ for root, dirs, files in os.walk("images/", topdown=True):
 		back = Image.new("RGB", [basewidth,baseheight])
 		img.convert('RGB')
 		back.paste(img,offset)
+		msz = (50,50)
+		back.thumbnail(msz, PIL.Image.ANTIALIAS)
 		back.save(dir_to_save+name)
 		
 	print i
